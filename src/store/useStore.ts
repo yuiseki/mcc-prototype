@@ -33,7 +33,9 @@ const initialState: RootState = {
   },
   seed: 42,
   refreshMs: 3000,
-  lastUpdate: 0
+  lastUpdate: 0,
+  cables: null,
+  highlightedCableId: undefined
 };
 
 let updateInterval: NodeJS.Timeout | null = null;
