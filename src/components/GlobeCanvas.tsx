@@ -1,7 +1,9 @@
 import React, { useRef, useEffect, useMemo } from 'react';
 import { Map, MapRef } from 'react-map-gl/maplibre';
 import { MapboxOverlay } from '@deck.gl/mapbox';
-import { ScatterplotLayer, ArcLayer, TextLayer } from '@deck.gl/layers';
+import { ScatterplotLayer, ArcLayer, TextLayer, GeoJsonLayer } from '@deck.gl/layers';
+
+type CableFeature = { id?: string; properties?: { color?: number[] } };
 import { useStore } from '../store/useStore';
 import type { Hub, Link } from '../types';
 
@@ -21,7 +23,7 @@ export function GlobeCanvas({ className = '' }: GlobeCanvasProps) {
   const mapRef = useRef<MapRef | null>(null);
   const overlayRef = useRef<MapboxOverlay>();
   
-  const { hubs, links, ui } = useStore();
+  const { hubs, links, ui, cables, highlightedCableId } = useStore();
   const setFocusHub = useStore((state) => state.setFocusHub);
 
   const initialViewState = {
@@ -35,6 +37,27 @@ export function GlobeCanvas({ className = '' }: GlobeCanvasProps) {
   // Create layers
   const layers = useMemo(() => {
     const layerList = [];
+
+    // Cable Layer
+    if (cables) {
+      layerList.push(
+        new GeoJsonLayer({
+          id: 'cable-layer',
+          data: cables,
+          pickable: false,
+          getLineColor: (f: CableFeature) => {
+            const color = f.properties?.color ?? [255, 255, 255];
+            return f.id === highlightedCableId
+              ? color.map((c) => Math.min(255, c + 40))
+              : color;
+          },
+          lineWidthMinPixels: 2,
+          updateTriggers: {
+            getLineColor: [highlightedCableId]
+          }
+        })
+      );
+    }
 
     // Arc Layer
     if (ui.layers.arcs && links.length > 0) {
@@ -111,7 +134,7 @@ export function GlobeCanvas({ className = '' }: GlobeCanvasProps) {
     }
 
     return layerList;
-  }, [hubs, links, ui.layers, ui.focusHubId, setFocusHub]);
+  }, [hubs, links, ui.layers, ui.focusHubId, cables, highlightedCableId, setFocusHub]);
 
   // Update layers
   useEffect(() => {

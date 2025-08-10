@@ -25,6 +25,8 @@ export interface KPI {
   trend: number[];
 }
 
+import type { FeatureCollection, LineString } from 'geojson';
+
 export interface EventItem {
   id: string;
   tsISO: string;
@@ -45,6 +47,12 @@ export interface UiState {
   focusHubId?: string;
 }
 
+export interface CableProperties {
+  color: [number, number, number];
+}
+
+export type CableCollection = FeatureCollection<LineString, CableProperties>;
+
 export interface RootState {
   hubs: Hub[];
   links: Link[];
@@ -54,4 +62,6 @@ export interface RootState {
   seed: number;
   refreshMs: number;
   lastUpdate: number;
+  cables: CableCollection | null;
+  highlightedCableId?: string;
 }
