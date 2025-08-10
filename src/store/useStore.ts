@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { DataGenerator } from '../mock/generator';
 import type { RootState } from '../types';
+import type { Feature } from 'geojson';
 
 const generator = new DataGenerator(42); // Fixed seed for reproducibility
 
@@ -14,6 +15,8 @@ interface StoreActions {
   setFocusHub: (hubId?: string) => void;
   startUpdateLoop: () => void;
   stopUpdateLoop: () => void;
+  loadCables: () => Promise<void>;
+  startCableHighlightLoop: () => void;
 }
 
 const initialState: RootState = {
@@ -33,10 +36,13 @@ const initialState: RootState = {
   },
   seed: 42,
   refreshMs: 3000,
-  lastUpdate: 0
+  lastUpdate: 0,
+  cables: [],
+  highlightedCableId: undefined
 };
 
 let updateInterval: NodeJS.Timeout | null = null;
+let cableHighlightInterval: NodeJS.Timeout | null = null;
 
 export const useStore = create<RootState & StoreActions>()(
   immer((set, get) => ({
@@ -55,6 +61,9 @@ export const useStore = create<RootState & StoreActions>()(
         state.events = events;
         state.lastUpdate = Date.now();
       });
+
+      void get().loadCables();
+      get().startCableHighlightLoop();
     },
 
     tick: () => {
@@ -119,6 +128,40 @@ export const useStore = create<RootState & StoreActions>()(
         clearInterval(updateInterval);
         updateInterval = null;
       }
+    },
+
+    loadCables: async () => {
+      try {
+        const res = await fetch(
+          'https://www.submarinecablemap.com/api/v3/cable/cable-geo.json'
+        );
+        const data = await res.json();
+        const features = (data.features ?? []) as Feature[];
+        set((state) => {
+          state.cables = features;
+        });
+      } catch (err) {
+        console.error('Failed to load cables', err);
+      }
+    },
+
+    startCableHighlightLoop: () => {
+      if (cableHighlightInterval) {
+        clearInterval(cableHighlightInterval);
+      }
+      cableHighlightInterval = setInterval(() => {
+        const { cables } = get();
+        if (!cables.length) return;
+        const feature = cables[Math.floor(Math.random() * cables.length)];
+        const id =
+          (feature.id ?? feature.properties?.id ?? feature.properties?.cable_id) as
+            | string
+            | number
+            | undefined;
+        set((state) => {
+          state.highlightedCableId = id !== undefined ? String(id) : undefined;
+        });
+      }, 3000);
     }
   }))
 );

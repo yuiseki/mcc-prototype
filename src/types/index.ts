@@ -1,3 +1,5 @@
+import type { Feature } from 'geojson';
+
 export interface Hub {
   id: string;
   name: string;
@@ -54,4 +56,6 @@ export interface RootState {
   seed: number;
   refreshMs: number;
   lastUpdate: number;
+  cables: Feature[];
+  highlightedCableId?: string;
 }
