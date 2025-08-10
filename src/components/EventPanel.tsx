@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { 
-  Play, Pause, RotateCcw, Eye, EyeOff, 
+import {
+  Play, Pause, Eye, EyeOff,
   AlertCircle, AlertTriangle, Info,
   Clock, Settings, Layers
 } from 'lucide-react';
