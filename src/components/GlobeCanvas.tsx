@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useMemo } from 'react';
-import { Map } from 'react-map-gl/maplibre';
+import { Map, MapRef } from 'react-map-gl/maplibre';
 import { MapboxOverlay } from '@deck.gl/mapbox';
 import { ScatterplotLayer, ArcLayer, TextLayer } from '@deck.gl/layers';
 import { useStore } from '../store/useStore';
@@ -18,7 +18,7 @@ interface GlobeCanvasProps {
 }
 
 export function GlobeCanvas({ className = '' }: GlobeCanvasProps) {
-  const mapRef = useRef<any>();
+  const mapRef = useRef<MapRef | null>(null);
   const overlayRef = useRef<MapboxOverlay>();
   
   const { hubs, links, ui } = useStore();
@@ -74,7 +74,7 @@ export function GlobeCanvas({ className = '' }: GlobeCanvasProps) {
             ...STATUS_COLORS[d.status], 
             ui.focusHubId === d.id ? 255 : 180
           ],
-          getLineColor: (d: Hub) => [255, 255, 255, 100],
+          getLineColor: () => [255, 255, 255, 100],
           getLineWidth: ui.focusHubId ? (d: Hub) => d.id === ui.focusHubId ? 3 : 1 : 1,
           radiusScale: 1,
           radiusMinPixels: 4,
@@ -113,17 +113,6 @@ export function GlobeCanvas({ className = '' }: GlobeCanvasProps) {
     return layerList;
   }, [hubs, links, ui.layers, ui.focusHubId, setFocusHub]);
 
-  // Initialize overlay
-  useEffect(() => {
-    if (mapRef.current && !overlayRef.current) {
-      overlayRef.current = new MapboxOverlay({
-        interleaved: true,
-        layers: []
-      });
-      mapRef.current.addControl(overlayRef.current);
-    }
-  }, []);
-
   // Update layers
   useEffect(() => {
     if (overlayRef.current) {
@@ -140,6 +129,14 @@ export function GlobeCanvas({ className = '' }: GlobeCanvasProps) {
         projection="globe"
         antialias={true}
         onLoad={() => {
+          if (mapRef.current && !overlayRef.current) {
+            overlayRef.current = new MapboxOverlay({
+              interleaved: true,
+              layers
+            });
+            mapRef.current.addControl(overlayRef.current);
+          }
+
           // Auto-rotate the globe
           if (mapRef.current && !ui.paused) {
             const rotateCamera = () => {
