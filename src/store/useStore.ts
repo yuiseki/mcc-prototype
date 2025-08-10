@@ -14,6 +14,10 @@ interface StoreActions {
   setFocusHub: (hubId?: string) => void;
   startUpdateLoop: () => void;
   stopUpdateLoop: () => void;
+  loadCableData: () => Promise<void>;
+  setHighlightedCable: (cableId?: string) => void;
+  startCableHighlightLoop: () => void;
+  stopCableHighlightLoop: () => void;
 }
 
 const initialState: RootState = {
@@ -39,6 +43,7 @@ const initialState: RootState = {
 };
 
 let updateInterval: NodeJS.Timeout | null = null;
+let cableHighlightInterval: NodeJS.Timeout | null = null;
 
 export const useStore = create<RootState & StoreActions>()(
   immer((set, get) => ({
@@ -120,6 +125,67 @@ export const useStore = create<RootState & StoreActions>()(
       if (updateInterval) {
         clearInterval(updateInterval);
         updateInterval = null;
+      }
+    },
+
+    loadCableData: async () => {
+      try {
+        const response = await fetch('https://z.yuiseki.net/static/cable-geo.json');
+        const cableData = await response.json();
+        
+        set((state) => {
+          // Add random colors to each cable feature
+          if (cableData.features) {
+            cableData.features.forEach((feature: { properties?: Record<string, unknown>; id?: string | number }) => {
+              if (!feature.properties) {
+                feature.properties = {};
+              }
+              // Generate random color for each cable
+              feature.properties.color = [
+                Math.floor(Math.random() * 128) + 127, // R: 127-255
+                Math.floor(Math.random() * 128) + 127, // G: 127-255
+                Math.floor(Math.random() * 128) + 127  // B: 127-255
+              ];
+            });
+          }
+          
+          state.cables = cableData;
+        });
+      } catch (error) {
+        console.error('Failed to load cable data:', error);
+      }
+    },
+
+    setHighlightedCable: (cableId) => {
+      set((state) => {
+        state.highlightedCableId = cableId;
+      });
+    },
+
+    startCableHighlightLoop: () => {
+      const highlightRandomCable = () => {
+        const state = get();
+        if (state.cables?.features && state.cables.features.length > 0) {
+          const randomIndex = Math.floor(Math.random() * state.cables.features.length);
+          const randomCable = state.cables.features[randomIndex];
+          const cableId = typeof randomCable.id === 'string' ? randomCable.id : `cable-${randomIndex}`;
+          state.setHighlightedCable(cableId);
+          
+          // Clear highlight after a short duration
+          setTimeout(() => {
+            state.setHighlightedCable(undefined);
+          }, 1000);
+        }
+      };
+
+      // Start highlighting every 3 seconds
+      cableHighlightInterval = setInterval(highlightRandomCable, 3000);
+    },
+
+    stopCableHighlightLoop: () => {
+      if (cableHighlightInterval) {
+        clearInterval(cableHighlightInterval);
+        cableHighlightInterval = null;
       }
     }
   }))

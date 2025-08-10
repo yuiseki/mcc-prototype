@@ -1,9 +1,8 @@
-import React, { useRef, useEffect, useMemo } from 'react';
+import { useRef, useEffect, useMemo } from 'react';
 import { Map, MapRef } from 'react-map-gl/maplibre';
 import { MapboxOverlay } from '@deck.gl/mapbox';
 import { ScatterplotLayer, ArcLayer, TextLayer, GeoJsonLayer } from '@deck.gl/layers';
 
-type CableFeature = { id?: string; properties?: { color?: number[] } };
 import { useStore } from '../store/useStore';
 import type { Hub, Link } from '../types';
 
@@ -45,18 +44,39 @@ export function GlobeCanvas({ className = '' }: GlobeCanvasProps) {
           id: 'cable-layer',
           data: cables,
           pickable: false,
-          getLineColor: (f: CableFeature) => {
-            const color = f.properties?.color ?? [255, 255, 255];
-            return f.id === highlightedCableId
-              ? color.map((c) => Math.min(255, c + 40))
-              : color;
-          },
-          lineWidthMinPixels: 2,
+          getLineColor: [100, 150, 255, 180],
+          getLineWidth: 2,
+          lineWidthMinPixels: 1,
+          lineWidthMaxPixels: 8,
           updateTriggers: {
             getLineColor: [highlightedCableId]
           }
         })
       );
+
+      // Highlighted cable layer
+      if (highlightedCableId && cables.features) {
+        const highlightedFeature = cables.features.find((f, index) => 
+          f.id === highlightedCableId || `cable-${index}` === highlightedCableId
+        );
+        
+        if (highlightedFeature) {
+          layerList.push(
+            new GeoJsonLayer({
+              id: 'highlighted-cable-layer',
+              data: {
+                type: 'FeatureCollection',
+                features: [highlightedFeature]
+              },
+              pickable: false,
+              getLineColor: [255, 255, 255, 255],
+              getLineWidth: 6,
+              lineWidthMinPixels: 3,
+              lineWidthMaxPixels: 12
+            })
+          );
+        }
+      }
     }
 
     // Arc Layer
@@ -75,8 +95,14 @@ export function GlobeCanvas({ className = '' }: GlobeCanvasProps) {
             const toHub = hubs.find(h => h.id === d.toHubId);
             return toHub ? [toHub.lon, toHub.lat] : [0, 0];
           },
-          getSourceColor: (d: Link) => [...STATUS_COLORS[d.status], 120],
-          getTargetColor: (d: Link) => [...STATUS_COLORS[d.status], 120],
+          getSourceColor: (d: Link) => {
+            const color = STATUS_COLORS[d.status];
+            return [color[0], color[1], color[2], 120];
+          },
+          getTargetColor: (d: Link) => {
+            const color = STATUS_COLORS[d.status];
+            return [color[0], color[1], color[2], 120];
+          },
           greatCircle: true,
           getHeight: 0.1,
           getTilt: 0
@@ -93,10 +119,11 @@ export function GlobeCanvas({ className = '' }: GlobeCanvasProps) {
           pickable: true,
           getPosition: (d: Hub) => [d.lon, d.lat],
           getRadius: (d: Hub) => Math.max(50000, d.load * 200000),
-          getFillColor: (d: Hub) => [
-            ...STATUS_COLORS[d.status], 
-            ui.focusHubId === d.id ? 255 : 180
-          ],
+          getFillColor: (d: Hub) => {
+            const color = STATUS_COLORS[d.status];
+            const alpha = ui.focusHubId === d.id ? 255 : 180;
+            return [color[0], color[1], color[2], alpha];
+          },
           getLineColor: () => [255, 255, 255, 100],
           getLineWidth: ui.focusHubId ? (d: Hub) => d.id === ui.focusHubId ? 3 : 1 : 1,
           radiusScale: 1,
@@ -150,7 +177,6 @@ export function GlobeCanvas({ className = '' }: GlobeCanvasProps) {
         initialViewState={initialViewState}
         mapStyle={MAPBOX_STYLE}
         projection="globe"
-        antialias={true}
         onLoad={() => {
           if (mapRef.current && !overlayRef.current) {
             overlayRef.current = new MapboxOverlay({
