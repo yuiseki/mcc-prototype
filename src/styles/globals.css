@@ -1,0 +1,121 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Mission Control Color Palette */
+  --bg-primary: #0B0F14;
+  --bg-secondary: #1A1F26;
+  --bg-tertiary: #252C35;
+  --fg-primary: #E6EDF3;
+  --fg-secondary: #B8C5D1;
+  --fg-tertiary: #8B96A5;
+  
+  /* Status Colors */
+  --status-ok: #3AE68D;
+  --status-warn: #F7B500;
+  --status-alarm: #FF4D4F;
+  --accent: #19B5FE;
+  
+  /* Gradients */
+  --gradient-ok: linear-gradient(135deg, #3AE68D 0%, #2DD4BF 100%);
+  --gradient-warn: linear-gradient(135deg, #F7B500 0%, #FB923C 100%);
+  --gradient-alarm: linear-gradient(135deg, #FF4D4F 0%, #F87171 100%);
+  
+  /* Spacing Scale */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 24px;
+  --space-2xl: 32px;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--fg-primary);
+  overflow: hidden;
+}
+
+/* Tabular Numbers */
+.tabular-nums {
+  font-feature-settings: 'tnum' 1;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Glow Effects */
+.glow-ok { box-shadow: 0 0 20px rgba(58, 230, 141, 0.3); }
+.glow-warn { box-shadow: 0 0 20px rgba(247, 181, 0, 0.3); }
+.glow-alarm { box-shadow: 0 0 20px rgba(255, 77, 79, 0.3); }
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--fg-tertiary);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--fg-secondary);
+}
+
+/* Animation Classes */
+.fade-in {
+  animation: fadeIn 300ms ease-out;
+}
+
+.slide-up {
+  animation: slideUp 400ms ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { 
+    opacity: 0; 
+    transform: translateY(20px); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateY(0); 
+  }
+}
+
+/* Grid Layout */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 360px 1fr 400px;
+  height: 100vh;
+  gap: 1px;
+  background-color: var(--bg-tertiary);
+}
+
+@media (max-width: 1200px) {
+  .dashboard-grid {
+    grid-template-columns: 320px 1fr 360px;
+  }
+}
+
+@media (max-width: 900px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr auto;
+  }
+}
