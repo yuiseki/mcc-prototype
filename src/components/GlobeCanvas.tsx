@@ -1,4 +1,4 @@
-import { useRef, useEffect, useMemo } from 'react';
+import { useRef, useEffect, useMemo, useCallback } from 'react';
 import { Map, MapRef } from 'react-map-gl/maplibre';
 import { MapboxOverlay } from '@deck.gl/mapbox';
 import { ScatterplotLayer, ArcLayer, TextLayer, GeoJsonLayer } from '@deck.gl/layers';
@@ -16,11 +16,35 @@ const STATUS_COLORS = {
 
 interface GlobeCanvasProps {
   className?: string;
+  /** Degrees to rotate the globe each second */
+  rotationStep?: number;
 }
 
-export function GlobeCanvas({ className = '' }: GlobeCanvasProps) {
+export function GlobeCanvas({ className = '', rotationStep = 0.05 }: GlobeCanvasProps) {
   const mapRef = useRef<MapRef | null>(null);
   const overlayRef = useRef<MapboxOverlay>();
+  const rotateIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const startAutoRotate = useCallback(() => {
+    if (rotateIntervalRef.current || !mapRef.current) return;
+    const rotateCamera = () => {
+      if (mapRef.current && !ui.paused) {
+        mapRef.current.easeTo({
+          bearing: mapRef.current.getBearing() + rotationStep,
+          duration: 1000,
+          easing: (t: number) => t
+        });
+      }
+    };
+    rotateIntervalRef.current = setInterval(rotateCamera, 1000);
+  }, [ui.paused, rotationStep]);
+
+  const stopAutoRotate = useCallback(() => {
+    if (rotateIntervalRef.current) {
+      clearInterval(rotateIntervalRef.current);
+      rotateIntervalRef.current = null;
+    }
+  }, []);
   
   const { hubs, links, ui, cables, highlightedCableId } = useStore();
   const setFocusHub = useStore((state) => state.setFocusHub);
@@ -170,6 +194,18 @@ export function GlobeCanvas({ className = '' }: GlobeCanvasProps) {
     }
   }, [layers]);
 
+  useEffect(() => {
+    if (ui.paused) {
+      stopAutoRotate();
+    } else {
+      startAutoRotate();
+    }
+
+    return () => {
+      stopAutoRotate();
+    };
+  }, [ui.paused, rotationStep, startAutoRotate, stopAutoRotate]);
+
   return (
     <div className={`globe-canvas relative h-full ${className}`}>
       <Map
@@ -187,17 +223,8 @@ export function GlobeCanvas({ className = '' }: GlobeCanvasProps) {
           }
 
           // Auto-rotate the globe
-          if (mapRef.current && !ui.paused) {
-            const rotateCamera = () => {
-              if (mapRef.current && !ui.paused) {
-                mapRef.current.easeTo({
-                  bearing: mapRef.current.getBearing() + 0.2,
-                  duration: 1000,
-                  easing: (t: number) => t
-                });
-              }
-            };
-            setInterval(rotateCamera, 1000);
+          if (!ui.paused) {
+            startAutoRotate();
           }
         }}
         style={{ width: '100%', height: '100%' }}
