@@ -25,6 +25,8 @@ export function GlobeCanvas({ className = '', rotationStep = 0.05 }: GlobeCanvas
   const overlayRef = useRef<MapboxOverlay>();
   const rotateIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  const { hubs, links, ui, cables, highlightedCableId } = useStore();
+
   const startAutoRotate = useCallback(() => {
     if (rotateIntervalRef.current || !mapRef.current) return;
     const rotateCamera = () => {
@@ -45,8 +47,6 @@ export function GlobeCanvas({ className = '', rotationStep = 0.05 }: GlobeCanvas
       rotateIntervalRef.current = null;
     }
   }, []);
-  
-  const { hubs, links, ui, cables, highlightedCableId } = useStore();
   const setFocusHub = useStore((state) => state.setFocusHub);
 
   const initialViewState = {
